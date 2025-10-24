@@ -1,0 +1,23 @@
+{
+  "name": "chat-app",
+  "version": "1.0.0",
+  "description": "A modern, full-stack real-time chat application built with the MERN stack, featuring instant messaging, online status tracking, and media sharing capabilities.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev":"",
+    "start": ""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/minhajak/ZenChat.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/minhajak/ZenChat/issues"
+  },
+  "homepage": "https://github.com/minhajak/ZenChat#readme"
+}
