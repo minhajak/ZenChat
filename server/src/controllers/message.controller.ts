@@ -11,19 +11,75 @@ export const getUsersForSidebar = async (
 ): Promise<void> => {
   try {
     const loggedUserId = req.user?.userId;
-    const Users = await User.find({
+
+    if (!loggedUserId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    // Get all users except the logged-in user
+    const users = await User.find({
       _id: { $ne: loggedUserId },
     }).select("-password -role -createdAt");
 
-    const filteredUsers = Users.map((user) => ({
-      id: user.id,
-      email: user.email,
-      fullName: user.fullName,
-      profileImage: user.profileImage,
-    }));
+    // Get the latest message for each conversation
+    const latestMessages = await Message.aggregate([
+      {
+        $match: {
+          $or: [
+            { senderId: new mongoose.Types.ObjectId(loggedUserId) },
+            { receiverId: new mongoose.Types.ObjectId(loggedUserId) }
+          ]
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $group: {
+          _id: {
+            $cond: [
+              { $eq: ["$senderId", new mongoose.Types.ObjectId(loggedUserId)] },
+              "$receiverId",
+              "$senderId"
+            ]
+          },
+          latestMessage: { $first: "$$ROOT" }
+        }
+      }
+    ]);
+
+
+    // Create a map of userId to latest message
+    const messageMap = new Map(
+      latestMessages.map(m => [m._id.toString(), m.latestMessage])
+    );
+
+
+    // Map users with their latest message info
+    const filteredUsers = users.map((user) => {
+      const userId = user.id.toString();
+      
+      return {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        profileImage: user.profileImage,
+        latestMessage: messageMap.get(userId) || null,
+      };
+    });
+
+    // Sort by latest message timestamp (most recent first)
+    filteredUsers.sort((a, b) => {
+      const timeA = a.latestMessage?.createdAt || 0;
+      const timeB = b.latestMessage?.createdAt || 0;
+      return new Date(timeB).getTime() - new Date(timeA).getTime();
+    });
+
     res.status(200).json({ users: filteredUsers });
   } catch (error) {
-    res.status(500).json({ message: "internal server error", error: error });
+    console.error("Error in getUsersForSidebar:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 export const getMessages = async (
@@ -69,8 +125,8 @@ export const sendMessages = async (
     await newMessage.save();
 
     const recieverSocketId = getRecieverSocketId(receiverId);
-    if(recieverSocketId){
-      io.to(recieverSocketId).emit("newMessage",newMessage)
+    if (recieverSocketId) {
+      io.to(recieverSocketId).emit("newMessage", newMessage);
     }
 
     res.status(200).json({ message: "message sended", messages: newMessage });

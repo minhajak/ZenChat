@@ -8,13 +8,19 @@ export interface MessageType {
   createdAt: string;
   image: string | ArrayBuffer;
 }
-export type UserType = Pick<
-  userType,
+
+export type UserType = Pick<userType,
   "id" | "email" | "profileImage" | "fullName"
 >;
 
+export type userTypeWithLatestMessage = Pick<UserType,
+  "id" | "email" | "fullName" | "profileImage"
+> & {
+  latestMessage: MessageType | null;
+};
+
 export type getUsersResponseType = {
-  users: UserType[];
+  users: userTypeWithLatestMessage[];
 };
 
 export type sendMessageResponseType = {
@@ -27,13 +33,13 @@ export type getMessagesResponseType = {
 
 export interface ChatState {
   messages: MessageType[];
-  users: UserType[];
-  selectedUser: UserType | null;
+  users: userTypeWithLatestMessage[];
+  selectedUser: userTypeWithLatestMessage | null;
   isUsersLoading: boolean;
   isMessagesLoading: boolean;
   getUsers: () => Promise<void>;
   getMessages: (userId: string) => Promise<void>;
-  setSelectedUser: (selectedUser: UserType | null) => void;
+  setSelectedUser: (selectedUser: userTypeWithLatestMessage | null) => void;
   sentMessages: (messageData: {
     text: string;
     image: ArrayBuffer;

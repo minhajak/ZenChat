@@ -23,6 +23,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       set({ isUsersLoading: true });
       const res = await client.get<getUsersResponseType>("/api/message/users");
+      console.log(res.data.users);
       set({ users: res.data.users });
     } catch (error: any) {
       toast.error(error.response.data.message);
@@ -30,6 +31,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ isUsersLoading: false });
     }
   },
+
   getMessages: async (userId) => {
     try {
       set({ isMessagesLoading: true });
@@ -43,31 +45,55 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ isMessagesLoading: false });
     }
   },
+
   sentMessages: async (messageData) => {
-    const { selectedUser, messages } = get();
+    const { selectedUser, messages, users } = get();
     try {
       const res = await client.post<sendMessageResponseType>(
         `/api/message/send/${selectedUser?.id}`,
         messageData
       );
-      set({ messages: [...messages, res.data.messages] });
+
+      const newMessage = res.data.messages;
+
+      set({ messages: [...messages, newMessage] });
+
+      // Update latest message for the selected user
+      set({
+        users: users.map((user) =>
+          user?.id === selectedUser?.id
+            ? { ...user, latestMessage: newMessage }
+            : user
+        ),
+      });
     } catch (error: any) {
       toast.error("error sending message");
-      // toast.error(error.response.data.message);
     }
   },
 
-  subscribeToMessages: async () => {
-    const { selectedUser } = get();
+  subscribeToMessages: () => {
+    const { selectedUser, users } = get();
+
     if (!selectedUser) return;
     const socket = useStoreAuth.getState().socket;
+
     socket.on("newMessage", (newMessage: MessageType) => {
       if (newMessage.senderId !== selectedUser.id) return;
+
       set({ messages: [...get().messages, newMessage] });
+
+      // Update the latest message for the user
+      set({
+        users: users.map((user) =>
+          user?.id === selectedUser.id
+            ? { ...user, latestMessage: newMessage }
+            : user
+        ),
+      });
     });
   },
 
-  unsubscribeToMessages: async () => {
+  unsubscribeToMessages: () => {
     const socket = useStoreAuth.getState().socket;
     socket.off("newMessage");
   },

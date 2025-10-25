@@ -19,7 +19,7 @@ const messageSchema = new Schema<IMessage>({
     image: {
         type: String,
         required: false
-    }
+    }        
 }, {
     timestamps: true
 });

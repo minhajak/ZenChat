@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import SidebarSkeletons from "./skeletons/SidebarSkeletons";
 import { useStoreAuth } from "../store/useStoreAuth";
-import { Users } from "lucide-react";
+import { Image, Users } from "lucide-react";
 
 export default function Sidebar() {
   const { getUsers, users, selectedUser, isUsersLoading, setSelectedUser } =
     useChatStore();
   const { onlineUsers } = useStoreAuth();
   const [showOnlineOnly, setShowOnlineOnly] = useState<boolean>(false);
-  
+
   useEffect(() => {
     getUsers();
   }, [getUsers]);
@@ -17,12 +17,12 @@ export default function Sidebar() {
   const filteredUsers = showOnlineOnly
     ? users.filter((user) => onlineUsers?.includes(user.id))
     : users;
-  
+
   // Calculate online count safely
   const onlineCount = onlineUsers ? onlineUsers.length - 1 : 0;
-  
+
   if (isUsersLoading) return <SidebarSkeletons />;
-  
+
   return (
     <aside className="h-full w-full lg:w-72 border-r border-base-300 flex flex-col transition-all duration-200">
       <div className="border-b border-base-300 w-full p-5">
@@ -52,7 +52,11 @@ export default function Sidebar() {
             className={`
               w-full p-3 flex items-center gap-3
               hover:bg-base-300 transition-colors
-              ${selectedUser?.id === user.id ? "bg-base-300 ring-1 ring-base-300" : ""}
+              ${
+                selectedUser?.id === user.id
+                  ? "bg-base-300 ring-1 ring-base-300"
+                  : ""
+              }
             `}
           >
             <div className="relative">
@@ -69,11 +73,25 @@ export default function Sidebar() {
               )}
             </div>
 
-            {/* User info - visible on all screens */}
             <div className="text-left min-w-0 flex-1">
               <div className="font-medium truncate">{user.fullName}</div>
-              <div className="text-sm text-zinc-400">
-                {onlineUsers?.includes(user.id) ? "Online" : "Offline"}
+              <div className="text-sm text-zinc-400 flex items-center gap-1">
+                {user?.latestMessage ? (
+                  <>
+                    {user?.latestMessage.image && (
+                      <Image className="w-4 h-4 flex-shrink-0" />
+                    )}
+                    {user?.latestMessage.text ? (
+                      <span className="truncate">
+                        {user.latestMessage.text}
+                      </span>
+                    ) : (
+                      user?.latestMessage.image && <span>Picture</span>
+                    )}
+                  </>
+                ) : (
+                  <span>No messages yet</span>
+                )}
               </div>
             </div>
           </button>
