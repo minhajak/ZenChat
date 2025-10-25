@@ -6,17 +6,21 @@ export interface MessageType {
   receiverId: string;
   text: string;
   createdAt: string;
+  seen: boolean;
   image: string | ArrayBuffer;
 }
 
-export type UserType = Pick<userType,
+export type UserType = Pick<
+  userType,
   "id" | "email" | "profileImage" | "fullName"
 >;
 
-export type userTypeWithLatestMessage = Pick<UserType,
+export type userTypeWithLatestMessage = Pick<
+  UserType,
   "id" | "email" | "fullName" | "profileImage"
 > & {
   latestMessage: MessageType | null;
+  unseenCount: number;
 };
 
 export type getUsersResponseType = {
@@ -46,4 +50,5 @@ export interface ChatState {
   }) => Promise<void>;
   subscribeToMessages: () => void;
   unsubscribeToMessages: () => void;
+  markAsSeen: (id: string) => void;
 }

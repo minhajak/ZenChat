@@ -5,6 +5,7 @@ export interface IMessage extends Document {
   receiverId: Types.ObjectId;
   text?: string;
   image?: string;
+  seen: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

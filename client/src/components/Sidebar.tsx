@@ -73,25 +73,38 @@ export default function Sidebar() {
               )}
             </div>
 
-            <div className="text-left min-w-0 flex-1">
-              <div className="font-medium truncate">{user.fullName}</div>
-              <div className="text-sm text-zinc-400 flex items-center gap-1">
-                {user?.latestMessage ? (
-                  <>
-                    {user?.latestMessage.image && (
-                      <Image className="w-4 h-4 flex-shrink-0" />
-                    )}
-                    {user?.latestMessage.text ? (
-                      <span className="truncate">
-                        {user.latestMessage.text}
-                      </span>
+            <div className="text-left min-w-0 flex-1 ">
+              <div className="flex flex-row justify-between items-center">
+                <div className="">
+                  <div className="font-medium truncate">{user.fullName}</div>
+                  <div className="text-sm text-zinc-400 flex items-center gap-1">
+                    {user?.latestMessage ? (
+                      <>
+                        {user?.latestMessage.image && (
+                          <Image className="w-4 h-4 flex-shrink-0" />
+                        )}
+                        {user?.latestMessage.text ? (
+                          <span className="truncate">
+                            {user.latestMessage.text}
+                          </span>
+                        ) : (
+                          user?.latestMessage.image && <span>Picture</span>
+                        )}
+                      </>
                     ) : (
-                      user?.latestMessage.image && <span>Picture</span>
+                      <span>No messages yet</span>
                     )}
-                  </>
-                ) : (
-                  <span>No messages yet</span>
-                )}
+                  </div>
+                </div>
+
+                <div className="">
+                  {" "}
+                  {user.unseenCount > 0 ? (
+                    <span className=" flex rounded-full border size-5 text-[12px] items-center justify-center bg-green-500 text-white">
+                      {user.unseenCount}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
           </button>
