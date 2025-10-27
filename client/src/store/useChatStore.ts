@@ -5,6 +5,7 @@ import { useStoreAuth } from "./useStoreAuth";
 import type {
   ChatState,
   getMessagesResponseType,
+  getSearchUserResponseType,
   getUsersResponseType,
   MessageType,
   sendMessageResponseType,
@@ -13,9 +14,11 @@ import type {
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
   users: [],
+  searchResult: [],
   selectedUser: null,
   isUsersLoading: false,
   isMessagesLoading: false,
+  isSearching: false,
 
   setSelectedUser: (selectedUser) => {
     const { users } = get();
@@ -46,9 +49,34 @@ export const useChatStore = create<ChatState>((set, get) => ({
       console.log(res.data.users);
       set({ users: res.data.users });
     } catch (error: any) {
-      toast.error(error.response.data.message);
+      // toast.error(error.response.data.message);
     } finally {
       set({ isUsersLoading: false });
+    }
+  },
+  deleteConversation: async (userId) => {
+    try {
+      await client.delete(`/api/message/conversation/${userId}`);
+
+      // Clear messages if this is the selected user
+      const { selectedUser } = get();
+      if (selectedUser?.id === userId) {
+        set({ messages: [] });
+      }
+
+      // Update users list - remove latest message
+      set({
+        users: get().users.map((user) =>
+          user?.id === userId
+            ? { ...user, latestMessage: null, unseenCount: 0 }
+            : user
+        ),
+      });
+
+      toast.success("Conversation deleted successfully");
+    } catch (error: any) {
+      console.error("Error deleting conversation:", error);
+      toast.error("Failed to delete conversation");
     }
   },
 
@@ -80,11 +108,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
       // Update latest message for the selected user
       set({
-        users: users.map((user) =>
-          user?.id === selectedUser?.id
-            ? { ...user, latestMessage: newMessage }
-            : user
-        ),
+        users: [
+          // Selected user with updated data at top
+          ...users
+            .filter((user) => user?.id === selectedUser?.id)
+            .map((user) => ({
+              ...user,
+              latestMessage: newMessage,
+            })),
+          // All other users
+          ...users.filter((user) => user?.id !== selectedUser?.id),
+        ],
       });
     } catch (error: any) {
       toast.error("error sending message");
@@ -92,55 +126,56 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   subscribeToMessages: () => {
-  const socket = useStoreAuth.getState().socket;
+    const socket = useStoreAuth.getState().socket;
 
-  socket.on("newMessage", (newMessage: MessageType) => {
-    const { selectedUser, users, messages } = get();
-    const authUserId = useStoreAuth.getState().authUser?.id;
+    socket.on("newMessage", (newMessage: MessageType) => {
+      const { selectedUser, users, messages } = get();
+      const authUserId = useStoreAuth.getState().authUser?.id;
 
-    // Determine if this message is from the currently selected user
-    const isMessageFromSelectedUser = newMessage.senderId === selectedUser?.id;
+      // Determine if this message is from the currently selected user
+      const isMessageFromSelectedUser =
+        newMessage.senderId === selectedUser?.id;
 
-    // Add message to current chat if it's from the selected user
-    if (isMessageFromSelectedUser) {
-      set({ messages: [...messages, newMessage] });
-      // Mark as seen immediately since chat is open
-      get().markAsSeen(selectedUser.id);
-    }
+      // Add message to current chat if it's from the selected user
+      if (isMessageFromSelectedUser) {
+        set({ messages: [...messages, newMessage] });
+        // Mark as seen immediately since chat is open
+        get().markAsSeen(selectedUser.id);
+      }
 
-    // Determine the conversation partner (the other person, not the logged-in user)
-    const conversationPartnerId = 
-      newMessage.senderId === authUserId 
-        ? newMessage.receiverId 
-        : newMessage.senderId;
+      // Determine the conversation partner (the other person, not the logged-in user)
+      const conversationPartnerId =
+        newMessage.senderId === authUserId
+          ? newMessage.receiverId
+          : newMessage.senderId;
 
-    // Update users list with latest message and unseen count
-    set({
-      users: users.map((user) => {
-        // Only update the conversation partner's entry
-        if (user?.id === conversationPartnerId) {
-          // Check if this is an incoming message (not sent by current user)
-          const isIncomingMessage = newMessage.senderId === user.id;
-          
-          // Increment unseen count only if:
-          // 1. Message is incoming (from this user)
-          // 2. Chat with this user is not currently open
-          const shouldIncrementUnseen = 
-            isIncomingMessage && !isMessageFromSelectedUser;
-          
-          return {
-            ...user,
-            latestMessage: newMessage,
-            unseenCount: shouldIncrementUnseen 
-              ? user.unseenCount + 1 
-              : user.unseenCount,
-          };
-        }
-        return user;
-      }),
+      // Update users list with latest message and unseen count
+      set({
+        users: users.map((user) => {
+          // Only update the conversation partner's entry
+          if (user?.id === conversationPartnerId) {
+            // Check if this is an incoming message (not sent by current user)
+            const isIncomingMessage = newMessage.senderId === user.id;
+
+            // Increment unseen count only if:
+            // 1. Message is incoming (from this user)
+            // 2. Chat with this user is not currently open
+            const shouldIncrementUnseen =
+              isIncomingMessage && !isMessageFromSelectedUser;
+
+            return {
+              ...user,
+              latestMessage: newMessage,
+              unseenCount: shouldIncrementUnseen
+                ? user.unseenCount + 1
+                : user.unseenCount,
+            };
+          }
+          return user;
+        }),
+      });
     });
-  });
-},
+  },
 
   unsubscribeToMessages: () => {
     const socket = useStoreAuth.getState().socket;
@@ -153,5 +188,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
     } catch (error) {
       toast.error("error marking the message");
     }
+  },
+  searchUsers: async (query: string) => {
+    const trimmed = query.trim();
+    set({ isSearching: true });
+
+    // Show empty state while searching (only if query exists)
+    if (trimmed) {
+      set({ searchResult: [] });
+    }
+
+    try {
+      if (!trimmed) {
+        set({ searchResult: [], isSearching: false });
+        return;
+      }
+
+      const res = await client.get<getSearchUserResponseType>(
+        `/api/auth/search/${encodeURIComponent(trimmed)}`
+      );
+
+      console.log(res.data.users)
+      set({ searchResult: res.data.users || [] });
+    } catch (error: any) {
+      console.error("Search error:", error);
+      set({ searchResult: [] });
+      toast.error(error.response?.data?.message || "Search failed");
+    } finally {
+      set({ isSearching: false });
+    }
+  },
+
+  // New: Clear search results
+  clearSearch: () => {
+    set({ searchResult: [], isSearching: false });
   },
 }));

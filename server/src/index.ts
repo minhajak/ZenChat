@@ -4,9 +4,9 @@ import cors from "cors";
 import { type CorsOptions } from "cors";
 import cookieParser from "cookie-parser";
 import { connectDB } from "./config/db.config";
-import { authRoute, messageRoute } from "./routes";
+import { authRoute, friendRoute, messageRoute } from "./routes";
 
-import { app ,server} from "./sockets/chat.socket";
+import { app, server } from "./sockets/chat.socket";
 
 dotenv.config();
 
@@ -31,6 +31,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoute);
 app.use("/api/message", messageRoute);
+app.use("/api/friend", friendRoute);
 
 // Start Server
 const PORT = process.env.PORT || 3000;

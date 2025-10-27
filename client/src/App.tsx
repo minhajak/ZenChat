@@ -1,10 +1,13 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+// App.tsx
+import { Route, Routes } from "react-router-dom";
 import {
+  FriendsPage,
   HomePage,
   LoginPage,
   ProfilePage,
-  SettingsPage,
   SignaupPage,
+  ThemePage,
+  UserProfilePage,
 } from "./pages";
 import { useStoreAuth } from "./store/useStoreAuth";
 import { useEffect } from "react";
@@ -12,13 +15,18 @@ import { Loader } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 import Navbar from "./layouts/Navbar";
 import { useThemeStore } from "./store/useThemeStore";
+import SideLayout from "./layouts/SideLayout";
+import ProtectedRoutes from "./Routes/ProtectedRoutes";
+import PublicRoutes from "./Routes/PublicRoutes";
 
 export default function App() {
   const { authUser, checkAuth, isCheckingAuth } = useStoreAuth();
   const { theme } = useThemeStore();
+
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
+
   if (isCheckingAuth && !authUser) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -26,27 +34,60 @@ export default function App() {
       </div>
     );
   }
+
   return (
     <div data-theme={theme}>
-      <Navbar />
       <Routes>
-        <Route
-          index
-          element={authUser ? <HomePage /> : <Navigate to={"/login"} />}
-        />
-        <Route
-          path="/signup"
-          element={!authUser ? <SignaupPage /> : <Navigate to={"/"} />}
-        />
-        <Route
-          path="/login"
-          element={!authUser ? <LoginPage /> : <Navigate to={"/"} />}
-        />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route
-          path="/profile"
-          element={authUser ? <ProfilePage /> : <Navigate to={"/login"} />}
-        />
+        <Route element={<Navbar />}>
+          {/* Protected Routes with Sidebar Layout */}
+          <Route
+            element={
+              <ProtectedRoutes>
+                <SideLayout />
+              </ProtectedRoutes>
+            }
+          >
+            <Route index element={<HomePage />} />
+            <Route path="/profile/:userId" element={<UserProfilePage />} />
+          </Route>
+
+          {/* Protected Routes without Sidebar */}
+          <Route
+            path="/friends"
+            element={
+              <ProtectedRoutes>
+                <FriendsPage />
+              </ProtectedRoutes>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoutes>
+                <ProfilePage />
+              </ProtectedRoutes>
+            }
+          />
+          <Route path="/theme" element={<ThemePage />} />
+
+          {/* Public Routes (redirect to home if authenticated) */}
+          <Route
+            path="/signup"
+            element={
+              <PublicRoutes>
+                <SignaupPage />
+              </PublicRoutes>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <PublicRoutes>
+                <LoginPage />
+              </PublicRoutes>
+            }
+          />
+        </Route>
       </Routes>
       <Toaster />
     </div>

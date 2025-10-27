@@ -21,6 +21,7 @@ export type userTypeWithLatestMessage = Pick<
 > & {
   latestMessage: MessageType | null;
   unseenCount: number;
+  lastSeen: string | null;
 };
 
 export type getUsersResponseType = {
@@ -35,12 +36,25 @@ export type getMessagesResponseType = {
   messages: MessageType[];
 };
 
+export type userforSearch = Pick<
+  userType,
+  "id" | "email" | "fullName" | "profileImage"
+> & {
+  friendshipStatus: "accepted" | "pending" | "declined" | "blocked" | null;
+  isRequester: boolean;
+};
+export type getSearchUserResponseType = {
+  users: userforSearch[];
+};
+
 export interface ChatState {
   messages: MessageType[];
   users: userTypeWithLatestMessage[];
+  searchResult: userforSearch[] | never[];
   selectedUser: userTypeWithLatestMessage | null;
   isUsersLoading: boolean;
   isMessagesLoading: boolean;
+  isSearching: boolean;
   getUsers: () => Promise<void>;
   getMessages: (userId: string) => Promise<void>;
   setSelectedUser: (selectedUser: userTypeWithLatestMessage | null) => void;
@@ -51,4 +65,7 @@ export interface ChatState {
   subscribeToMessages: () => void;
   unsubscribeToMessages: () => void;
   markAsSeen: (id: string) => void;
+  deleteConversation: (userId: string) => Promise<void>;
+  searchUsers: (query: string) => Promise<void>;
+  clearSearch: () => void;
 }

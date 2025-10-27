@@ -15,6 +15,10 @@ const userSchema = new Schema<IUser>(
       required: true,
     },
     profileImage: { type: String, default: "" },
+    lastSeen: {
+      type: Date,
+      default: Date.now,
+    },
   },
   { timestamps: true }
 );

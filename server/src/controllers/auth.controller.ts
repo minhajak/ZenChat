@@ -15,6 +15,7 @@ import { userEnum } from "../types/user.type";
 import { validateInpuWithZod } from "../utils/helper.util";
 import mongoose from "mongoose";
 import cloudinary from "../config/cloudinary.config";
+import { Friend } from "../models/friend.model";
 
 export const signUp = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -194,6 +195,82 @@ export const updateProfile = async (
     });
   } catch (error) {
     console.log("error in update profile:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+export const searchUsers = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { searchQuery } = req.params;
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({ message: "Authentication required" });
+      return;
+    }
+
+    if (!searchQuery || typeof searchQuery !== 'string') {
+      res.status(400).json({ message: "Search query is required" });
+      return;
+    }
+
+    // Search for users by name or email, excluding current user
+    const users = await User.find({
+      $and: [
+        {
+          $or: [
+            { fullName: { $regex: searchQuery, $options: 'i' } },
+            { email: { $regex: searchQuery, $options: 'i' } }
+          ]
+        },
+        { _id: { $ne: userId } }
+      ]
+    })
+    .select('fullName email profileImage')
+    .limit(20);
+
+    // Get all friendships for these users
+    const userIds = users.map(user => user._id);
+    const friendships = await Friend.find({
+      $or: [
+        { requester: userId, recipient: { $in: userIds } },
+        { recipient: userId, requester: { $in: userIds } }
+      ]
+    }).select('requester recipient status');
+
+    // Map users with their friendship status
+    const usersWithStatus = users.map(user => {
+      const friendship = friendships.find(f => 
+        (f.requester.toString() === user.id.toString()) || 
+        (f.recipient.toString() === user.id.toString())
+      );
+
+      let friendshipStatus = null;
+      let isRequester = false;
+
+      if (friendship) {
+        friendshipStatus = friendship.status;
+        isRequester = friendship.requester.toString() === userId.toString();
+      }
+
+      return {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        profileImage: user.profileImage,
+        friendshipStatus,
+        isRequester,
+      };
+    });
+
+    res.status(200).json({ 
+      users: usersWithStatus,
+      count: usersWithStatus.length 
+    });
+  } catch (error) {
+    console.error("Error in searchUsers:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

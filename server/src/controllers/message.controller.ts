@@ -4,6 +4,8 @@ import mongoose from "mongoose";
 import { Message } from "../models/message.model";
 import cloudinary from "../config/cloudinary.config";
 import { getRecieverSocketId, io } from "../sockets/chat.socket";
+import { Friend } from "../models/friend.model";
+import { friendStatus } from "../types/friend.type";
 
 export const getUsersForSidebar = async (
   req: Request,
@@ -17,9 +19,27 @@ export const getUsersForSidebar = async (
       return;
     }
 
-    // Get all users except the logged-in user
+    // Get accepted friendships for the logged-in user
+    const acceptedFriendships = await Friend.find({
+      $or: [
+        { requester: loggedUserId, status: friendStatus.ACCEPTED },
+        { recipient: loggedUserId, status: friendStatus.ACCEPTED },
+      ],
+    });
+
+    // Extract the IDs of friend users
+    const otherUserIds = acceptedFriendships.map((friendship) =>
+      friendship.requester.equals(loggedUserId) ? friendship.recipient : friendship.requester
+    );
+
+    if (otherUserIds.length === 0) {
+      res.status(200).json({ users: [] });
+      return;
+    }
+
+    // Get friend users
     const users = await User.find({
-      _id: { $ne: loggedUserId },
+      _id: { $in: otherUserIds },
     }).select("-password -role -createdAt");
 
     // Get the latest message and unseen count for each conversation
@@ -89,6 +109,7 @@ export const getUsersForSidebar = async (
         email: user.email,
         fullName: user.fullName,
         profileImage: user.profileImage,
+        lastSeen: user.lastSeen,
         latestMessage: conversation?.latestMessage || null,
         unseenCount: conversation?.unseenCount || 0,
       };
@@ -190,6 +211,44 @@ export const markMessagesAsSeen = async (
     });
   } catch (error) {
     console.error("Error in markMessagesAsSeen:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const deleteConversation = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.user?.userId;
+    const { receiverId } = req.params;
+
+    if (!userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    if (!receiverId) {
+      res.status(400).json({ message: "Receiver ID is required" });
+      return;
+    }
+
+    // Delete all messages between the two users
+    const result = await Message.deleteMany({
+      $or: [
+        { senderId: userId, receiverId: receiverId },
+        { senderId: receiverId, receiverId: userId },
+      ],
+    });
+
+    console.log(`Deleted ${result.deletedCount} messages`);
+
+    res.status(200).json({ 
+      message: "Conversation deleted successfully",
+      deletedCount: result.deletedCount
+    });
+  } catch (error) {
+    console.error("Error in deleteConversation:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

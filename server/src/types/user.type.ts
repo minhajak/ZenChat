@@ -5,10 +5,11 @@ import { UserType } from "../validations/user.validation";
 export interface IUser extends Document, UserType {
   role: string;
   comparePassword(enteredPassword: string): Promise<boolean>;
+  lastSeen: Date;
   createdAt: Date;
   updatedAt: Date;
 }
 export enum userEnum {
-  USER="user",
-  ADMIN="admin"
+  USER = "user",
+  ADMIN = "admin",
 }

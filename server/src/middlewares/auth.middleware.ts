@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { verifyAccessToken } from "../utils/jwt.utls";
+import { User } from "../models/user.model";
 
 export const authMiddleware = async (
   req: Request,
@@ -31,4 +32,24 @@ export const authMiddleware = async (
   // Set data into the req
   (req as any).user = { role, userId };
   next();
+};
+
+export const updateLastSeen = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    if (req.user?.userId) {
+      // Update last seen without blocking the request
+      User.findByIdAndUpdate(
+        req.user.userId,
+        { lastSeen: new Date() },
+        { new: false }
+      ).catch((err) => console.error("Error updating last seen:", err));
+    }
+    next();
+  } catch (error) {
+    next();
+  }
 };

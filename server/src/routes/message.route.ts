@@ -1,6 +1,7 @@
 import express from "express";
-import { authMiddleware } from "../middlewares/auth.middleware";
+import { authMiddleware, updateLastSeen } from "../middlewares/auth.middleware";
 import {
+  deleteConversation,
   getMessages,
   getUsersForSidebar,
   markMessagesAsSeen,
@@ -9,9 +10,12 @@ import {
 
 const router = express.Router();
 
-router.get("/users", authMiddleware, getUsersForSidebar);
-router.get("/:id", authMiddleware, getMessages);
-router.post("/send/:id", authMiddleware, sendMessages);
-router.put("/mark-seen/:id", authMiddleware, markMessagesAsSeen);
+router.use(authMiddleware, updateLastSeen);
+router.get("/users", getUsersForSidebar);
+router.get("/:id", getMessages);
+router.post("/send/:id", sendMessages);
+router.put("/mark-seen/:id", markMessagesAsSeen);
+
+router.delete("/conversation/:receiverId", deleteConversation);
 
 export default router;

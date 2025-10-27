@@ -2,21 +2,36 @@ import { useEffect, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import SidebarSkeletons from "./skeletons/SidebarSkeletons";
 import { useStoreAuth } from "../store/useStoreAuth";
-import { Image, Users } from "lucide-react";
+import { Image } from "lucide-react";
+import { Link } from "react-router-dom";
+import SearchSection from "./SearchSection";
 
 export default function Sidebar() {
-  const { getUsers, users, selectedUser, isUsersLoading, setSelectedUser } =
-    useChatStore();
+  const {
+    getUsers,
+    users,
+    selectedUser,
+    isUsersLoading,
+    setSelectedUser,
+    sentMessages,
+  } = useChatStore();
   const { onlineUsers } = useStoreAuth();
   const [showOnlineOnly, setShowOnlineOnly] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     getUsers();
-  }, [getUsers]);
+  }, [getUsers, sentMessages]);
 
-  const filteredUsers = showOnlineOnly
-    ? users.filter((user) => onlineUsers?.includes(user.id))
-    : users;
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = user.fullName
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesOnlineFilter = showOnlineOnly
+      ? onlineUsers?.includes(user.id)
+      : true;
+    return matchesSearch && matchesOnlineFilter;
+  });
 
   // Calculate online count safely
   const onlineCount = onlineUsers ? onlineUsers.length - 1 : 0;
@@ -26,10 +41,10 @@ export default function Sidebar() {
   return (
     <aside className="h-full w-full lg:w-72 border-r border-base-300 flex flex-col transition-all duration-200">
       <div className="border-b border-base-300 w-full p-5">
-        <div className="flex items-center gap-2">
-          <Users className="size-6" />
-          <span className="font-medium">Contacts</span>
-        </div>
+        <SearchSection
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+        />
         <div className="mt-3 flex items-center gap-2">
           <label className="cursor-pointer flex items-center gap-2">
             <input
@@ -46,8 +61,9 @@ export default function Sidebar() {
 
       <div className="overflow-y-auto w-full py-3">
         {filteredUsers.map((user) => (
-          <button
+          <Link
             key={user.id}
+            to={"/"}
             onClick={() => setSelectedUser(user)}
             className={`
               w-full p-3 flex items-center gap-3
@@ -81,7 +97,7 @@ export default function Sidebar() {
                     {user?.latestMessage ? (
                       <>
                         {user?.latestMessage.image && (
-                          <Image className="w-4 h-4 flex-shrink-0" />
+                          <Image className="w-4 h-4" />
                         )}
                         {user?.latestMessage.text ? (
                           <span className="truncate">
@@ -107,7 +123,7 @@ export default function Sidebar() {
                 </div>
               </div>
             </div>
-          </button>
+          </Link>
         ))}
 
         {filteredUsers.length === 0 && (
