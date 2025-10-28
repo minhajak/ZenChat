@@ -159,8 +159,8 @@ export const sendMessages = async (
     const senderId = req.user?.userId;
     // Get image URL from Cloudinary upload (if file was uploaded)
     const imageUrl = req.file ? (req.file as any).path : undefined;
-    console.log(imageUrl)
-    console.log(text)
+    console.log(imageUrl);
+    console.log(text);
     const newMessage = new Message({
       senderId: senderId,
       receiverId: receiverId,
@@ -239,6 +239,10 @@ export const deleteConversation = async (
         { senderId: receiverId, receiverId: userId },
       ],
     });
+    const recieverSocketId = getRecieverSocketId(receiverId);
+    if (recieverSocketId) {
+      io.to(recieverSocketId).emit("deleteMessage", "deleted");
+    }
 
     console.log(`Deleted ${result.deletedCount} messages`);
 

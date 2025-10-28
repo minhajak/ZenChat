@@ -72,7 +72,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
             : user
         ),
       });
-      get().subscribeToMessages();
       toast.success("Conversation deleted successfully");
     } catch (error: any) {
       console.error("Error deleting conversation:", error);
@@ -217,11 +216,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }),
       });
     });
+    socket.on("deleteMessage", () => {
+      set({ messages: [] });
+    });
   },
 
   unsubscribeToMessages: () => {
     const socket = useStoreAuth.getState().socket;
     socket.off("newMessage");
+    socket.off("deleteMessage");
   },
 
   markAsSeen: async (id: string) => {
