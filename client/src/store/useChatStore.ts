@@ -72,7 +72,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             : user
         ),
       });
-
+      get().subscribeToMessages();
       toast.success("Conversation deleted successfully");
     } catch (error: any) {
       console.error("Error deleting conversation:", error);
@@ -159,7 +159,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
           ...users.filter((user) => user?.id !== selectedUser?.id),
         ],
       });
-      get().subscribeToMessages();
     } catch (error: any) {
       // Remove optimistic message on error
       set({ messages: messages }); // Revert to original messages
