@@ -17,7 +17,6 @@ import mongoose from "mongoose";
 import cloudinary from "../config/cloudinary.config";
 import { Friend } from "../models/friend.model";
 
-
 export const signUp = async (req: Request, res: Response): Promise<void> => {
   try {
     const data: Partial<UserType> = sanitizeInput(req.body);
@@ -43,8 +42,8 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: true,
+      sameSite: "none",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -84,11 +83,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       role: user.role,
     });
 
-    // Set refresh token in httpOnly cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: true,
+      sameSite: "none",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -207,13 +205,12 @@ export const searchUsers = async (
     const { searchQuery } = req.params;
     const userId = req.user?.userId;
 
-
     if (!userId) {
       res.status(401).json({ message: "Authentication required" });
       return;
     }
 
-    if (!searchQuery || typeof searchQuery !== 'string') {
+    if (!searchQuery || typeof searchQuery !== "string") {
       res.status(400).json({ message: "Search query is required" });
       return;
     }
@@ -223,30 +220,31 @@ export const searchUsers = async (
       $and: [
         {
           $or: [
-            { fullName: { $regex: searchQuery, $options: 'i' } },
-            { email: { $regex: searchQuery, $options: 'i' } }
-          ]
+            { fullName: { $regex: searchQuery, $options: "i" } },
+            { email: { $regex: searchQuery, $options: "i" } },
+          ],
         },
-        { _id: { $ne: userId } }
-      ]
+        { _id: { $ne: userId } },
+      ],
     })
-    .select('fullName email profileImage')
-    .limit(10);
+      .select("fullName email profileImage")
+      .limit(10);
 
     // Get all friendships for these users
-    const userIds = users.map(user => user._id);
+    const userIds = users.map((user) => user._id);
     const friendships = await Friend.find({
       $or: [
         { requester: userId, recipient: { $in: userIds } },
-        { recipient: userId, requester: { $in: userIds } }
-      ]
-    }).select('requester recipient status');
+        { recipient: userId, requester: { $in: userIds } },
+      ],
+    }).select("requester recipient status");
 
     // Map users with their friendship status
-    const usersWithStatus = users.map(user => {
-      const friendship = friendships.find(f => 
-        (f.requester.toString() === user.id.toString()) || 
-        (f.recipient.toString() === user.id.toString())
+    const usersWithStatus = users.map((user) => {
+      const friendship = friendships.find(
+        (f) =>
+          f.requester.toString() === user.id.toString() ||
+          f.recipient.toString() === user.id.toString()
       );
 
       let friendshipStatus = null;
@@ -267,9 +265,9 @@ export const searchUsers = async (
       };
     });
 
-    res.status(200).json({ 
+    res.status(200).json({
       users: usersWithStatus,
-      count: usersWithStatus.length 
+      count: usersWithStatus.length,
     });
   } catch (error) {
     console.error("Error in searchUsers:", error);
