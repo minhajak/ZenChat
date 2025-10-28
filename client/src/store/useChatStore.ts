@@ -94,78 +94,79 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-sentMessages: async (messageData: FormData) => {
-  const { selectedUser, messages, users } = get();
-  const authUser = useStoreAuth.getState().authUser;
-  
-  try {
-    // Extract data from FormData for optimistic update
-    const text = messageData.get("text") as string;
-    const imageFile = messageData.get("image") as File | null;
-    console.log(text)
-    
-    // Create preview URL for optimistic image display
-    let imagePreview = null;
-    if (imageFile) {
-      imagePreview = URL.createObjectURL(imageFile);
+  sentMessages: async (messageData: FormData) => {
+    const { selectedUser, messages, users } = get();
+    const authUser = useStoreAuth.getState().authUser;
+
+    try {
+      // Extract data from FormData for optimistic update
+      const text = messageData.get("text") as string;
+      const imageFile = messageData.get("image") as File | null;
+      console.log(text);
+
+      // Create preview URL for optimistic image display
+      let imagePreview = null;
+      if (imageFile) {
+        imagePreview = URL.createObjectURL(imageFile);
+      }
+
+      // Create optimistic message (temporary message shown immediately)
+      const optimisticMessage: MessageType = {
+        _id: `temp-${Date.now()}`, // Temporary ID
+        senderId: authUser?.id as string, // Current user is sender
+        receiverId: selectedUser?.id as string, // Selected user is receiver
+        createdAt: new Date().toISOString(),
+        image: imagePreview as string, // Use preview URL temporarily
+        text: text || "",
+        seen: false,
+      };
+
+      // Optimistically update UI
+      set({ messages: [...messages, optimisticMessage] });
+
+      // Send to server
+      const res = await client.post<sendMessageResponseType>(
+        `/api/message/send/${selectedUser?.id}`,
+        messageData
+      );
+
+      const newMessage = res.data.messages;
+
+      // Clean up the preview URL
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+
+      // Replace optimistic message with real message from server
+      set({
+        messages: [
+          ...messages.filter((m) => m._id !== optimisticMessage._id),
+          newMessage,
+        ],
+      });
+
+      // Update latest message for the selected user
+      set({
+        users: [
+          // Selected user with updated data at top
+          ...users
+            .filter((user) => user?.id === selectedUser?.id)
+            .map((user) => ({
+              ...user,
+              latestMessage: newMessage,
+            })),
+          // All other users
+          ...users.filter((user) => user?.id !== selectedUser?.id),
+        ],
+      });
+      get().subscribeToMessages();
+    } catch (error: any) {
+      // Remove optimistic message on error
+      set({ messages: messages }); // Revert to original messages
+      toast.error(error.response?.data?.message || "Error sending message");
+      console.error("Error sending message:", error);
     }
-
-    // Create optimistic message (temporary message shown immediately)
-    const optimisticMessage: MessageType = {
-      _id: `temp-${Date.now()}`, // Temporary ID
-      senderId: authUser?.id as string, // Current user is sender
-      receiverId: selectedUser?.id as string, // Selected user is receiver
-      createdAt: new Date().toISOString(),
-      image: imagePreview as string, // Use preview URL temporarily
-      text: text || "",
-      seen: false,
-    };
-
-    // Optimistically update UI
-    set({ messages: [...messages, optimisticMessage] });
-
-    // Send to server
-    const res = await client.post<sendMessageResponseType>(
-      `/api/message/send/${selectedUser?.id}`,
-      messageData
-    );
-
-    const newMessage = res.data.messages;
-
-    // Clean up the preview URL
-    if (imagePreview) {
-      URL.revokeObjectURL(imagePreview);
-    }
-
-    // Replace optimistic message with real message from server
-    set({ 
-      messages: [
-        ...messages.filter(m => m._id !== optimisticMessage._id),
-        newMessage
-      ] 
-    });
-
-    // Update latest message for the selected user
-    set({
-      users: [
-        // Selected user with updated data at top
-        ...users
-          .filter((user) => user?.id === selectedUser?.id)
-          .map((user) => ({
-            ...user,
-            latestMessage: newMessage,
-          })),
-        // All other users
-        ...users.filter((user) => user?.id !== selectedUser?.id),
-      ],
-    });
-  } catch (error: any) {
-    // Remove optimistic message on error
-    set({ messages: messages }); // Revert to original messages
-    toast.error(error.response?.data?.message || "Error sending message");
-    console.error("Error sending message:", error);
-  }
-},
+  },
 
   subscribeToMessages: () => {
     const socket = useStoreAuth.getState().socket;
@@ -250,7 +251,7 @@ sentMessages: async (messageData: FormData) => {
         `/api/auth/search/${encodeURIComponent(trimmed)}`
       );
 
-      console.log(res.data.users)
+      console.log(res.data.users);
       set({ searchResult: res.data.users || [] });
     } catch (error: any) {
       console.error("Search error:", error);
