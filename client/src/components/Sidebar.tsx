@@ -35,9 +35,6 @@ export default function Sidebar() {
     return matchesSearch && matchesOnlineFilter;
   });
 
-  if (isUsersLoading) return <SidebarSkeletons />;
-  console.log(onlineUsers);
-
   return (
     <aside className="h-full w-full lg:w-[350px] md:border-r border-base-300 flex flex-col transition-all duration-200">
       <div className="md:border-b border-base-300 w-full p-5">
@@ -58,13 +55,17 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <div className="overflow-y-auto w-full py-3">
-        {filteredUsers.map((user) => (
-          <Link
-            key={user.id}
-            to={"/"}
-            onClick={() => setSelectedUser(user)}
-            className={`
+      <>
+        {isUsersLoading ? (
+          <SidebarSkeletons />
+        ) : (
+          <div className="overflow-y-auto w-full py-3">
+            {filteredUsers.map((user) => (
+              <Link
+                key={user.id}
+                to={"/"}
+                onClick={() => setSelectedUser(user)}
+                className={`
               w-full p-3 flex items-center gap-3
               hover:bg-base-300 transition-colors
               ${
@@ -73,64 +74,68 @@ export default function Sidebar() {
                   : ""
               }
             `}
-          >
-            <div className="relative">
-              <img
-                src={(user.profileImage || "/avatar.png") as string}
-                alt={user.fullName}
-                className="size-12 object-cover rounded-full"
-              />
-              {onlineUsers?.includes(user.id) && (
-                <span
-                  className="absolute bottom-0 right-0 size-3 bg-green-500 
+              >
+                <div className="relative">
+                  <img
+                    src={(user.profileImage || "/avatar.png") as string}
+                    alt={user.fullName}
+                    className="size-12 object-cover rounded-full"
+                  />
+                  {onlineUsers?.includes(user.id) && (
+                    <span
+                      className="absolute bottom-0 right-0 size-3 bg-green-500 
                   rounded-full ring-2 ring-zinc-900"
-                />
-              )}
-            </div>
+                    />
+                  )}
+                </div>
 
-            <div className="text-left min-w-0 flex-1 ">
-              <div className="flex flex-row justify-between items-center">
-                <div className="">
-                  <div className="font-medium truncate">{user.fullName}</div>
-                  <div className="text-sm text-zinc-400 flex items-center gap-1">
-                    {user?.latestMessage ? (
-                      <>
-                        {user?.latestMessage.image && (
-                          <Image className="w-4 h-4" />
-                        )}
-                        {user?.latestMessage.text ? (
-                          <span className="line-clamp-1">
-                            {user.latestMessage.text}
-                          </span>
+                <div className="text-left min-w-0 flex-1 ">
+                  <div className="flex flex-row justify-between items-center">
+                    <div className="">
+                      <div className="font-medium truncate">
+                        {user.fullName}
+                      </div>
+                      <div className="text-sm text-zinc-400 flex items-center gap-1">
+                        {user?.latestMessage ? (
+                          <>
+                            {user?.latestMessage.image && (
+                              <Image className="w-4 h-4" />
+                            )}
+                            {user?.latestMessage.text ? (
+                              <span className="line-clamp-1">
+                                {user.latestMessage.text}
+                              </span>
+                            ) : (
+                              user?.latestMessage.image && <span>Picture</span>
+                            )}
+                          </>
                         ) : (
-                          user?.latestMessage.image && <span>Picture</span>
+                          <span>No messages yet</span>
                         )}
-                      </>
-                    ) : (
-                      <span>No messages yet</span>
-                    )}
+                      </div>
+                    </div>
+
+                    <div className="">
+                      {" "}
+                      {user.unseenCount > 0 ? (
+                        <span className=" flex rounded-full border size-5 text-[12px] items-center justify-center bg-green-500 text-white">
+                          {user.unseenCount}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
+              </Link>
+            ))}
 
-                <div className="">
-                  {" "}
-                  {user.unseenCount > 0 ? (
-                    <span className=" flex rounded-full border size-5 text-[12px] items-center justify-center bg-green-500 text-white">
-                      {user.unseenCount}
-                    </span>
-                  ) : null}
-                </div>
+            {filteredUsers.length === 0 && (
+              <div className="text-center text-zinc-500 py-4">
+                {showOnlineOnly ? "No online users" : "No contacts"}
               </div>
-            </div>
-          </Link>
-        ))}
-
-        {filteredUsers.length === 0 && (
-          <div className="text-center text-zinc-500 py-4">
-            {showOnlineOnly ? "No online users" : "No contacts"}
+            )}
           </div>
         )}
-      </div>
+      </>
     </aside>
   );
 }
