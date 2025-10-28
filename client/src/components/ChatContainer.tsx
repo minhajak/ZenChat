@@ -14,6 +14,7 @@ export default function ChatContainer() {
     selectedUser,
     subscribeToMessages,
     unsubscribeToMessages,
+    deleteConversation,
   } = useChatStore();
   const { authUser } = useStoreAuth();
 
@@ -28,6 +29,7 @@ export default function ChatContainer() {
     getMessages,
     subscribeToMessages,
     unsubscribeToMessages,
+    deleteConversation,
   ]);
   useEffect(() => {
     if (messageEndRef.current && messages) {
