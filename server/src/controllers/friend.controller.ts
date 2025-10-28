@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { User } from "../models/user.model";
 
 import mongoose from "mongoose";
-import { getRecieverSocketId, io, userSocketMap } from "../sockets/chat.socket";
+import { getRecieverSocketId, io } from "../sockets/chat.socket";
 import { Friend } from "../models/friend.model";
 import { friendStatus } from "../types/friend.type";
 
@@ -55,7 +55,6 @@ export const addFriendRequest = async (
       }
 
       if (existingFriendship.status === friendStatus.PENDING) {
-        // Check who sent the request - FIX: Convert ObjectId to string
         const isSentByMe =
           existingFriendship.requester.toString() === loggedUserId.toString();
 
@@ -72,7 +71,6 @@ export const addFriendRequest = async (
       }
 
       if (existingFriendship.status === friendStatus.BLOCKED) {
-        // Check who blocked whom - FIX: Convert ObjectId to string
         const blockedByMe =
           existingFriendship.requester.toString() === loggedUserId.toString();
 
@@ -90,30 +88,39 @@ export const addFriendRequest = async (
       }
 
       if (existingFriendship.status === friendStatus.DECLINED) {
-        // Allow sending new request after decline (optional behavior)
+        // Update existing friendship
         existingFriendship.requester = new mongoose.Types.ObjectId(
           loggedUserId
         );
         existingFriendship.recipient = new mongoose.Types.ObjectId(receiverId);
         existingFriendship.status = friendStatus.PENDING;
+        existingFriendship.createdAt = new Date(); // Update timestamp
         await existingFriendship.save();
 
-        // Populate for response
+        // Populate requester data
         await existingFriendship.populate(
-          "recipient",
-          "fullName email profileImage"
+          "requester",
+          "_id fullName email profileImage"
         );
 
-        // Send socket notification
-        const user = await User.findById(loggedUserId);
-        const receiverSocketId = getRecieverSocketId(receiverId);
-        if (receiverSocketId) {
-          io.to(receiverSocketId).emit("friendRequest", {
+        // Get requester info for socket emission
+        const requester = await User.findById(loggedUserId).select(
+          "_id fullName email profileImage"
+        );
+
+        // Emit to receiver via socket
+        const recipientSocketId = getRecieverSocketId(receiverId);
+        if (recipientSocketId && requester) {
+          io.to(recipientSocketId).emit("newInvites", {
+            id: existingFriendship._id.toString(),
             requester: {
-              id: loggedUserId,
-              fullName: user?.fullName,
+              id: requester.id.toString(),
+              fullName: requester.fullName,
+              email: requester.email,
+              profileImage: requester.profileImage,
             },
-            friendRequest: existingFriendship,
+            status: existingFriendship.status,
+            createdAt: existingFriendship.createdAt,
           });
         }
 
@@ -126,32 +133,42 @@ export const addFriendRequest = async (
     }
 
     // Create new friend request
-    const friendRequest = await Friend.create({
+    const newFriendRequest = await Friend.create({
       requester: loggedUserId,
       recipient: receiverId,
       status: friendStatus.PENDING,
     });
 
-    // Populate the recipient info for immediate use
-    await friendRequest.populate("recipient", "fullName email profileImage");
+    // Populate requester data
+    await newFriendRequest.populate(
+      "requester",
+      "_id fullName email profileImage"
+    );
 
-    const user = await User.findById(loggedUserId);
+    // Get requester info for socket emission
+    const requester = await User.findById(loggedUserId).select(
+      "_id fullName email profileImage"
+    );
 
-    // Send socket notification to receiver
-    const receiverSocketId = getRecieverSocketId(receiverId);
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("friendRequest", {
+    // Emit to receiver via socket
+    const recipientSocketId = getRecieverSocketId(receiverId);
+    if (recipientSocketId && requester) {
+      io.to(recipientSocketId).emit("newInvites", {
+        id: newFriendRequest._id.toString(),
         requester: {
-          id: loggedUserId,
-          fullName: user?.fullName,
+          id: requester.id.toString(),
+          fullName: requester.fullName,
+          email: requester.email,
+          profileImage: requester.profileImage,
         },
-        friendRequest,
+        status: newFriendRequest.status,
+        createdAt: newFriendRequest.createdAt,
       });
     }
 
     res.status(201).json({
       message: "Friend request sent successfully",
-      friendRequest,
+      friendRequest: newFriendRequest,
     });
   } catch (error) {
     console.error("Error in addFriendRequest:", error);
@@ -248,14 +265,50 @@ export const getInvites = async (
       return;
     }
 
+    // Parse pagination parameters
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 5;
+    const skip = (page - 1) * limit;
+
+    // Validate pagination parameters
+    if (page < 1 || limit < 1 || limit > 100) {
+      res.status(400).json({
+        message:
+          "Invalid pagination parameters. Page must be >= 1 and limit between 1-100",
+      });
+      return;
+    }
+
     const objectId = new mongoose.Types.ObjectId(userId);
+
+    // Get total count for pagination metadata
+    const totalCount = await Friend.countDocuments({
+      recipient: objectId,
+      status: friendStatus.PENDING,
+    });
+
+    // Fetch paginated invites
     const invites = await Friend.find({
       recipient: objectId,
       status: friendStatus.PENDING,
-    }).select("_id requester status createdAt");
+    })
+      .select("_id requester status createdAt")
+      .sort({ createdAt: -1 }) // Most recent first
+      .skip(skip)
+      .limit(limit);
 
     if (invites.length === 0) {
-      res.status(200).json({ invites: [] });
+      res.status(200).json({
+        invites: [],
+        pagination: {
+          currentPage: page,
+          totalPages: 0,
+          totalCount: 0,
+          limit,
+          hasNextPage: false,
+          hasPrevPage: false,
+        },
+      });
       return;
     }
 
@@ -286,7 +339,22 @@ export const getInvites = async (
       };
     });
 
-    res.status(200).json({ invites: formattedInvites });
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    res.status(200).json({
+      invites: formattedInvites,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+        limit,
+        hasNextPage,
+        hasPrevPage,
+      },
+    });
   } catch (error) {
     console.error("Error in getInvites:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -383,14 +451,20 @@ export const getSuggestions = async (
     }
 
     const page = parseInt(req.query.page as string) || 1;
-    const limit = 5;
+    const limit = parseInt(req.query.limit as string) || 5;
     const skip = (page - 1) * limit;
 
     // Fetch existing friendships to exclude friends and pending requests
     const friendships = await Friend.find({
       $or: [
-        { requester: userId, status: { $in: ["accepted", "pending"] } },
-        { recipient: userId, status: { $in: ["accepted", "pending"] } },
+        {
+          requester: userId,
+          status: { $in: ["accepted", "pending", "declined"] },
+        },
+        {
+          recipient: userId,
+          status: { $in: ["accepted", "pending", "declined"] },
+        },
       ],
     }).select("requester recipient");
 

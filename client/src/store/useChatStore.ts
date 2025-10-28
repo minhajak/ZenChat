@@ -94,36 +94,60 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  sentMessages: async (messageData) => {
-    const { selectedUser, messages, users } = get();
-    try {
-      const res = await client.post<sendMessageResponseType>(
-        `/api/message/send/${selectedUser?.id}`,
-        messageData
-      );
+ sentMessages: async (messageData) => {
+  const { selectedUser, messages, users } = get();
+  const authUser = useStoreAuth.getState().authUser;
+  
+  try {
+    // Create optimistic message (temporary message shown immediately)
+    const optimisticMessage:MessageType = {
+      ...messageData,
+      _id: `temp-${Date.now()}`, // Temporary ID
+      senderId: authUser?.id as string, // Current user is sender
+      receiverId: selectedUser?.id as string, // Selected user is receiver
+      createdAt: new Date().toISOString(),
+      seen: false,
+    };
 
-      const newMessage = res.data.messages;
+    // Optimistically update UI
+    set({ messages: [...messages, optimisticMessage] });
 
-      set({ messages: [...messages, newMessage] });
+    // Send to server
+    const res = await client.post<sendMessageResponseType>(
+      `/api/message/send/${selectedUser?.id}`,
+      messageData
+    );
 
-      // Update latest message for the selected user
-      set({
-        users: [
-          // Selected user with updated data at top
-          ...users
-            .filter((user) => user?.id === selectedUser?.id)
-            .map((user) => ({
-              ...user,
-              latestMessage: newMessage,
-            })),
-          // All other users
-          ...users.filter((user) => user?.id !== selectedUser?.id),
-        ],
-      });
-    } catch (error: any) {
-      toast.error("error sending message");
-    }
-  },
+    const newMessage = res.data.messages;
+
+    // Replace optimistic message with real message from server
+    set({ 
+      messages: [
+        ...messages.filter(m => m._id !== optimisticMessage._id),
+        newMessage
+      ] 
+    });
+
+    // Update latest message for the selected user
+    set({
+      users: [
+        // Selected user with updated data at top
+        ...users
+          .filter((user) => user?.id === selectedUser?.id)
+          .map((user) => ({
+            ...user,
+            latestMessage: newMessage,
+          })),
+        // All other users
+        ...users.filter((user) => user?.id !== selectedUser?.id),
+      ],
+    });
+  } catch (error: any) {
+    // Remove optimistic message on error
+    set({ messages: messages }); // Revert to original messages
+    toast.error("Error sending message");
+  }
+},
 
   subscribeToMessages: () => {
     const socket = useStoreAuth.getState().socket;

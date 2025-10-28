@@ -1,32 +1,27 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useFriendStore } from "../store/useFriendStore";
 import { UserPlus, Check, X, Loader2 } from "lucide-react";
-import toast from "react-hot-toast";
 import { formatLastSeen } from "../lib/utils";
+import Pagination from "./Pagination";
+import type { invite } from "../types/friend.type";
 
 interface InviteProps {
-  invite: {
-    id: string;
-    requester: {
-      id: string;
-      fullName: string;
-      email: string;
-      profileImage?: string | File | ArrayBuffer | null | undefined;
-    };
-    status: string;
-    createdAt: string | Date;
-  };
+  invite: invite;
+  onAccept: (userId: string) => Promise<void>;
+  onDecline: (userId: string) => Promise<void>;
+  isProcessing: boolean;
 }
 
-const InviteItem: React.FC<InviteProps> = ({ invite }) => {
-  const {
-    AcceptingFriendship,
-    DeclingFriendship,
-    isAcceptingFriendship,
-    isDeclingFriendship,
-  } = useFriendStore();
+const InviteItem: React.FC<InviteProps> = ({
+  invite,
+  onAccept,
+  onDecline,
+  isProcessing,
+}) => {
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isDeclining, setIsDeclining] = useState(false);
 
-  const isLoading = isAcceptingFriendship || isDeclingFriendship;
+  const isLoading = isAccepting || isDeclining || isProcessing;
 
   // Helper to safely get image src
   const getImageSrc = (
@@ -40,15 +35,22 @@ const InviteItem: React.FC<InviteProps> = ({ invite }) => {
 
   const handleAccept = async () => {
     try {
-      await AcceptingFriendship(invite.requester.id);
-      toast.success("Friend request accepted successfully");
+      setIsAccepting(true);
+      await onAccept(invite.requester.id);
     } catch (error) {
-      toast.error("Failed to accept friend request");
+    } finally {
+      setIsAccepting(false);
     }
   };
 
-  const handleDecline = () => {
-    DeclingFriendship(invite.requester.id);
+  const handleDecline = async () => {
+    try {
+      setIsDeclining(true);
+      await onDecline(invite.requester.id);
+    } catch (error) {
+    } finally {
+      setIsDeclining(false);
+    }
   };
 
   return (
@@ -57,7 +59,7 @@ const InviteItem: React.FC<InviteProps> = ({ invite }) => {
         {/* Avatar and User Info */}
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {/* Avatar */}
-          <div className="avatar ">
+          <div className="avatar">
             <div className="w-12 h-12 rounded-full">
               <img
                 src={getImageSrc(invite.requester.profileImage)}
@@ -86,7 +88,7 @@ const InviteItem: React.FC<InviteProps> = ({ invite }) => {
             className="btn btn-success btn-sm gap-1"
             title="Accept request"
           >
-            {isAcceptingFriendship ? (
+            {isAccepting ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <>
@@ -101,7 +103,7 @@ const InviteItem: React.FC<InviteProps> = ({ invite }) => {
             className="btn btn-error btn-sm gap-1"
             title="Decline request"
           >
-            {isDeclingFriendship ? (
+            {isDeclining ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <>
@@ -117,12 +119,47 @@ const InviteItem: React.FC<InviteProps> = ({ invite }) => {
 };
 
 export default function Invites() {
-  const { invites, getInvites, isGettingInvites } = useFriendStore();
-  const safeInvites = invites || [];
+  const [currentPage, setCurrentPage] = useState(1);
+  const [processingUserId, setProcessingUserId] = useState<string | null>(null);
+  const {
+    invites,
+    getInvites,
+    isGettingInvites,
+    AcceptingFriendship,
+    DeclingFriendship,
+    subscribeToInvites,
+    unsubscribeToInvites,
+  } = useFriendStore();
+  const safeInvites = invites?.invites || [];
+  const totalPages = invites?.pagination?.totalPages || 0;
+  const totalCount = invites?.pagination?.totalCount || 0;
 
   useEffect(() => {
-    getInvites();
-  }, [getInvites]);
+    getInvites(currentPage, 5);
+    subscribeToInvites();
+    return () => unsubscribeToInvites();
+  }, [currentPage, getInvites]);
+
+  const handleAccept = async (userId: string) => {
+    setProcessingUserId(userId);
+    try {
+      await AcceptingFriendship(userId);
+    } finally {
+      setProcessingUserId(null);
+    }
+  };
+
+  const handleDecline = async (userId: string) => {
+    setProcessingUserId(userId);
+    try {
+      await DeclingFriendship(userId);
+    } finally {
+      setProcessingUserId(null);
+    }
+  };
+
+  const isEmptyState =
+    safeInvites.length === 0 && !isGettingInvites && currentPage === 1;
 
   return (
     <div className="w-full h-full flex flex-col bg-base-100">
@@ -131,8 +168,8 @@ export default function Invites() {
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <UserPlus className="w-6 h-6 text-primary" />
           Friend Invites
-          {safeInvites.length > 0 && (
-            <span className="badge badge-primary">{safeInvites.length}</span>
+          {totalCount > 0 && (
+            <span className="badge badge-primary">{totalCount}</span>
           )}
         </h2>
       </div>
@@ -144,7 +181,7 @@ export default function Invites() {
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
             <span className="sr-only">Loading...</span>
           </div>
-        ) : safeInvites.length === 0 ? (
+        ) : isEmptyState ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <div className="w-16 h-16 bg-base-200 rounded-full flex items-center justify-center mb-4">
               <UserPlus className="w-8 h-8 text-base-content/40" />
@@ -155,11 +192,28 @@ export default function Invites() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-base-300">
-            {safeInvites.map((invite) => (
-              <InviteItem key={invite.id} invite={invite} />
-            ))}
-          </div>
+          <>
+            <div className="divide-y divide-base-300">
+              {safeInvites.map((invite) => (
+                <InviteItem
+                  key={invite.id}
+                  invite={invite}
+                  onAccept={handleAccept}
+                  onDecline={handleDecline}
+                  isProcessing={processingUserId === invite.requester.id}
+                />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                totalPages={totalPages}
+              />
+            )}
+          </>
         )}
       </div>
     </div>

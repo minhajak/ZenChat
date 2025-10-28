@@ -13,8 +13,15 @@ export type invite = {
 };
 export type inviteResponseType = {
   invites: invite[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    limit: number;
+    hasNextPage: boolean;
+    hasPrevPage: boolean;
+  };
 };
-
 export type getSuggestionsResponseType = {
   suggestions: requester[];
   page: number;
@@ -24,8 +31,9 @@ export type getSuggestionsResponseType = {
 };
 
 export interface FriendState {
-  invites: invite[] | null;
+  invites: inviteResponseType | null;
   suggestions: getSuggestionsResponseType | null;
+  inviteHandler: ((invite: invite) => void) | null;
   isRequestingFriendship: boolean;
   isDeclingFriendship: boolean;
   isRemovingFriendship: boolean;
@@ -36,6 +44,8 @@ export interface FriendState {
   AcceptingFriendship: (userId: string) => void;
   DeclingFriendship: (userId: string) => void;
   RemovingFriendship: (userId: string) => void;
-  getInvites: () => void;
-  getSuggestions: (pageNumber: number) => void;
+  getInvites: (page: number, limit: number) => void;
+  getSuggestions: (page: number, limit: number) => void;
+  subscribeToInvites: () => void;
+  unsubscribeToInvites: () => void;
 }

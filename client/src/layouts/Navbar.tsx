@@ -8,10 +8,11 @@ import {
 } from "lucide-react";
 import { useStoreAuth } from "../store/useStoreAuth";
 
+
 const Navbar = () => {
   const { logout, authUser } = useStoreAuth();
+ 
 
-  
 
   return (
     <>

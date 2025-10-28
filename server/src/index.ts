@@ -6,11 +6,10 @@ import cookieParser from "cookie-parser";
 import { connectDB } from "./config/db.config";
 import { authRoute, friendRoute, messageRoute } from "./routes";
 
+connectDB();
 import { app, server } from "./sockets/chat.socket";
 
 dotenv.config();
-
-connectDB();
 
 // CORS Configuration
 const corsOptions: CorsOptions = {

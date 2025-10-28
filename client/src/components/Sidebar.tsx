@@ -5,6 +5,7 @@ import { useStoreAuth } from "../store/useStoreAuth";
 import { Image } from "lucide-react";
 import { Link } from "react-router-dom";
 import SearchSection from "./SearchSection";
+import { useFriendStore } from "../store/useFriendStore";
 
 export default function Sidebar() {
   const {
@@ -16,12 +17,13 @@ export default function Sidebar() {
     sentMessages,
   } = useChatStore();
   const { onlineUsers } = useStoreAuth();
+  const { AcceptingFriendship } = useFriendStore();
   const [showOnlineOnly, setShowOnlineOnly] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     getUsers();
-  }, [getUsers, sentMessages]);
+  }, [getUsers, sentMessages, AcceptingFriendship]);
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch = user.fullName
@@ -33,14 +35,12 @@ export default function Sidebar() {
     return matchesSearch && matchesOnlineFilter;
   });
 
-  // Calculate online count safely
-  const onlineCount = onlineUsers ? onlineUsers.length - 1 : 0;
-
   if (isUsersLoading) return <SidebarSkeletons />;
+  console.log(onlineUsers);
 
   return (
-    <aside className="h-full w-full lg:w-72 border-r border-base-300 flex flex-col transition-all duration-200">
-      <div className="border-b border-base-300 w-full p-5">
+    <aside className="h-full w-full lg:w-72 md:border-r border-base-300 flex flex-col transition-all duration-200">
+      <div className="md:border-b border-base-300 w-full p-5">
         <SearchSection
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -55,7 +55,6 @@ export default function Sidebar() {
             />
             <span className="text-sm">Show online only</span>
           </label>
-          <span className="text-xs text-zinc-500">({onlineCount} online)</span>
         </div>
       </div>
 

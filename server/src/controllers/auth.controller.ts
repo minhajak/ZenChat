@@ -177,6 +177,7 @@ export const updateProfile = async (
       return;
     }
 
+
     const uploadResponse = await cloudinary.uploader.upload(profileImage);
     const updatedUser = await User.findByIdAndUpdate(
       userId,
@@ -206,6 +207,7 @@ export const searchUsers = async (
     const { searchQuery } = req.params;
     const userId = req.user?.userId;
 
+
     if (!userId) {
       res.status(401).json({ message: "Authentication required" });
       return;
@@ -229,7 +231,7 @@ export const searchUsers = async (
       ]
     })
     .select('fullName email profileImage')
-    .limit(20);
+    .limit(10);
 
     // Get all friendships for these users
     const userIds = users.map(user => user._id);

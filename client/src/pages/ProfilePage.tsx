@@ -4,7 +4,7 @@ import { useStoreAuth } from "../store/useStoreAuth";
 
 const ProfilePage = () => {
   const { authUser, isUpdatingProfile, updateProfile } = useStoreAuth();
-  const [selectedImg, setSelectedImg] = useState<File>();
+  const [selectedImg, setSelectedImg] = useState<string>("");
 
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -15,10 +15,10 @@ const ProfilePage = () => {
     reader.readAsDataURL(file);
 
     reader.onload = async () => {
-      const base64Image = reader.result;
-      setSelectedImg(base64Image as unknown as File);
+      const base64Image = reader.result as string;
+      setSelectedImg(base64Image);
       updateProfile({
-        profileImage: base64Image as ArrayBuffer,
+        profileImage: base64Image,
       });
     };
   };
@@ -39,8 +39,8 @@ const ProfilePage = () => {
               <img
                 src={
                   (selectedImg ||
-                    authUser?.profileImage ||
-                    "/avatar.png") as string
+                  authUser?.profileImage ||
+                  "/avatar.png") as string
                 }
                 alt="Profile"
                 className="size-32 rounded-full object-cover border-4 "

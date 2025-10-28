@@ -28,11 +28,11 @@ export default function MessageInput() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSendMessage = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!text?.trim() && !imagePreview) return;
     try {
-      await sentMessages({
+      sentMessages({
         text: text?.trim() as string,
         image: imagePreview as ArrayBuffer,
       });
@@ -85,7 +85,7 @@ export default function MessageInput() {
 
           <button
             type="button"
-            className={`hidden sm:flex btn btn-circle
+            className={` sm:flex btn btn-circle
                      ${imagePreview ? "text-emerald-500" : "text-zinc-400"}`}
             onClick={() => fileInputRef.current?.click()}
           >
@@ -94,10 +94,10 @@ export default function MessageInput() {
         </div>
         <button
           type="submit"
-          className="btn btn-sm btn-circle"
+          className="btn btn-circle"
           disabled={!text?.trim() && !imagePreview}
         >
-          <Send size={22} />
+          <Send size={20} />
         </button>
       </form>
     </div>

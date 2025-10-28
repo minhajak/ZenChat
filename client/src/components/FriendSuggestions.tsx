@@ -1,16 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useFriendStore } from "../store/useFriendStore";
-import {
-  UserPlus,
-  Loader2,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { UserPlus, Loader2, Plus } from "lucide-react";
 import toast from "react-hot-toast";
-import type {
-  requester,
-} from "../types/friend.type";
+import type { requester } from "../types/friend.type";
+import Pagination from "./Pagination";
 
 interface SuggestionItemProps {
   user: requester;
@@ -44,7 +37,7 @@ const SuggestionItem: React.FC<SuggestionItemProps> = ({
           </div>
 
           {/* User Info */}
-          <div className="min-w-0 flex-1">
+          <div className="flex flex-col justify-start items-start">
             <p className="font-medium truncate">{user.fullName}</p>
             <p className="text-sm text-base-content/60 truncate">
               {user.email}
@@ -89,7 +82,7 @@ export default function FriendSuggestions() {
   const totalCount = suggestions?.totalCount || 0;
 
   useEffect(() => {
-    getSuggestions(currentPage);
+    getSuggestions(currentPage,5);
   }, [currentPage, getSuggestions]);
 
   const handleAddFriend = async (userId: string) => {
@@ -100,18 +93,6 @@ export default function FriendSuggestions() {
       toast.error("Failed to send friend request");
     } finally {
       setLoadingUserId(null);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage((prev) => prev - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage((prev) => prev + 1);
     }
   };
 
@@ -163,31 +144,11 @@ export default function FriendSuggestions() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="p-4 border-t border-base-300 bg-base-100 sticky bottom-0">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-base-content/60">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handlePrevPage}
-                      disabled={currentPage === 1}
-                      className="btn btn-outline btn-sm gap-1 disabled:opacity-50"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      <span className="hidden sm:inline">Prev</span>
-                    </button>
-                    <button
-                      onClick={handleNextPage}
-                      disabled={currentPage === totalPages}
-                      className="btn btn-outline btn-sm gap-1 disabled:opacity-50"
-                    >
-                      <span className="hidden sm:inline">Next</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                setCurrentPage={setCurrentPage}
+                totalPages={totalPages}
+              />
             )}
           </>
         )}

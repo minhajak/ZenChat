@@ -121,6 +121,7 @@ export const getUsersForSidebar = async (
       const timeB = b.latestMessage?.createdAt || 0;
       return new Date(timeB).getTime() - new Date(timeA).getTime();
     });
+    
 
     res.status(200).json({ users: filteredUsers });
   } catch (error) {
