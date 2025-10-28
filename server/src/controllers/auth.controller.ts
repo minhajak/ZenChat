@@ -17,23 +17,6 @@ import mongoose from "mongoose";
 import cloudinary from "../config/cloudinary.config";
 import { Friend } from "../models/friend.model";
 
-import "express";
-
-
-declare global {
-  namespace Express {
-    interface User {
-      role: string;
-      userId: mongoose.Types.ObjectId;
-    }
-
-    interface Request {
-      user?: User;
-    }
-  }
-}
-
-
 
 export const signUp = async (req: Request, res: Response): Promise<void> => {
   try {
