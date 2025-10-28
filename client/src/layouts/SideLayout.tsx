@@ -17,7 +17,6 @@ export default function SideLayout() {
             >
               <Sidebar />
             </div>
-
             {/* Chat Area: Hidden on mobile when no user selected, always visible on desktop */}
             <div
               className={`${selectedUser ? "flex" : "hidden md:flex"} flex-1`}
