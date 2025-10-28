@@ -13,7 +13,7 @@ dotenv.config();
 
 // CORS Configuration
 const corsOptions: CorsOptions = {
-  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  origin: process.env.CLIENT_URL,
   credentials: true,
 };
 

@@ -39,7 +39,7 @@ export default function Sidebar() {
   console.log(onlineUsers);
 
   return (
-    <aside className="h-full w-full lg:w-72 md:border-r border-base-300 flex flex-col transition-all duration-200">
+    <aside className="h-full w-full lg:w-[350px] md:border-r border-base-300 flex flex-col transition-all duration-200">
       <div className="md:border-b border-base-300 w-full p-5">
         <SearchSection
           searchQuery={searchQuery}
