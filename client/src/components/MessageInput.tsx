@@ -6,7 +6,8 @@ import toast from "react-hot-toast";
 export default function MessageInput() {
   const { sentMessages } = useChatStore();
   const [text, setText] = useState<string>("");
-  const [imagePreview, setImagePreview] = useState<ArrayBuffer| null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -16,34 +17,61 @@ export default function MessageInput() {
       toast.error("Please select image file");
       return;
     }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as ArrayBuffer);
-    };
-    reader.readAsDataURL(file);
+
+    // Store the File object
+    setImageFile(file);
+
+    // Create preview URL using URL.createObjectURL (more efficient)
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
   };
 
   const removeImage = () => {
+    // Revoke the object URL to free memory
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
     setImagePreview(null);
+    setImageFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleSendMessage = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!text?.trim() && !imagePreview) return;
+    if (!text?.trim() && !imageFile) return;
+
     try {
-      sentMessages({
-        text: text?.trim() as string,
-        image: imagePreview as ArrayBuffer,
-      });
+      const formData = new FormData();
+      if (text?.trim()) {
+        formData.append("text", text.trim());
+      }
+      if (imageFile) {
+        formData.append("image", imageFile); // Field name matches multer config
+      }
+
+      sentMessages(formData);
+
       setText("");
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
       setImagePreview(null);
+      setImageFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (error) {
       console.error(`failed to send message`, error);
+      toast.error("Failed to send message");
     }
   };
 
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
   return (
     <div className="p-4 w-full">
       {imagePreview && (

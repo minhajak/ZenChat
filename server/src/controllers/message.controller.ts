@@ -29,7 +29,9 @@ export const getUsersForSidebar = async (
 
     // Extract the IDs of friend users
     const otherUserIds = acceptedFriendships.map((friendship) =>
-      friendship.requester.equals(loggedUserId) ? friendship.recipient : friendship.requester
+      friendship.requester.equals(loggedUserId)
+        ? friendship.recipient
+        : friendship.requester
     );
 
     if (otherUserIds.length === 0) {
@@ -121,7 +123,6 @@ export const getUsersForSidebar = async (
       const timeB = b.latestMessage?.createdAt || 0;
       return new Date(timeB).getTime() - new Date(timeA).getTime();
     });
-    
 
     res.status(200).json({ users: filteredUsers });
   } catch (error) {
@@ -156,17 +157,14 @@ export const sendMessages = async (
     const { text, image } = req.body;
     const { id: receiverId } = req.params;
     const senderId = req.user?.userId;
-
-    let imageUrl;
-    if (image) {
-      // Upload base64 image to cloudinary
-      const uploadResponse = await cloudinary.uploader.upload(image);
-      imageUrl = uploadResponse.secure_url;
-    }
+    // Get image URL from Cloudinary upload (if file was uploaded)
+    const imageUrl = req.file ? (req.file as any).path : undefined;
+    console.log(imageUrl)
+    console.log(text)
     const newMessage = new Message({
       senderId: senderId,
       receiverId: receiverId,
-      text,
+      text: text,
       image: imageUrl,
     });
     await newMessage.save();
@@ -244,9 +242,9 @@ export const deleteConversation = async (
 
     console.log(`Deleted ${result.deletedCount} messages`);
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: "Conversation deleted successfully",
-      deletedCount: result.deletedCount
+      deletedCount: result.deletedCount,
     });
   } catch (error) {
     console.error("Error in deleteConversation:", error);

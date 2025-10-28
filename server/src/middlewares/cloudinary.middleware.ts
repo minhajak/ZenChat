@@ -1,55 +1,150 @@
 import multer from "multer";
-import type { Request } from "express";
+import cloudinary from "../config/cloudinary.config";
+import { Request } from "express";
+import streamifier from "streamifier";
 
-// Memory storage - files stored in memory as Buffer
-const storage = multer.memoryStorage();
+// Helper function to upload buffer to Cloudinary
+const uploadToCloudinary = (
+	buffer: Buffer,
+	options: any
+): Promise<any> => {
+	return new Promise((resolve, reject) => {
+		const uploadStream = cloudinary.uploader.upload_stream(
+			options,
+			(error, result) => {
+				if (error) reject(error);
+				else resolve(result);
+			}
+		);
+		streamifier.createReadStream(buffer).pipe(uploadStream);
+	});
+};
 
-// Image upload configuration
+// Image Upload Configuration
+const imageStorage = multer.memoryStorage();
+
 export const imageUpload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
-    
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only JPEG, PNG, JPG, and WEBP images are allowed!"));
-    }
-  },
+	storage: imageStorage,
+	fileFilter: (_req, file, cb) => {
+		const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+		cb(null, allowedTypes.includes(file.mimetype));
+	},
 });
 
-// PDF upload configuration
+// Middleware to upload image to Cloudinary after multer processes it
+export const uploadImageToCloudinary = async (
+	req: Request,
+	_res: any,
+	next: Function
+) => {
+	try {
+		if (!req.file) return next();
+
+		const result = await uploadToCloudinary(req.file.buffer, {
+			folder: "images",
+			resource_type: "image",
+			format: "webp",
+			transformation: [{ width: 800, height: 800, crop: "limit" }],
+		});
+
+		// Attach Cloudinary result to req.file
+		(req.file as any).cloudinary = result;
+		(req.file as any).path = result.secure_url;
+
+		next();
+	} catch (error) {
+		next(error);
+	}
+};
+
+// PDF Upload Configuration
+const pdfStorage = multer.memoryStorage();
+
+const pdfFileFilter = (_req: any, file: Express.Multer.File, cb: Function) => {
+	if (file.mimetype === "application/pdf") {
+		cb(null, true);
+	} else {
+		cb(new Error("Only PDF files are allowed!"), false);
+	}
+};
+
 export const pdfUpload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-  fileFilter: (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    if (file.mimetype === "application/pdf") {
-      cb(null, true);
-    } else {
-      cb(new Error("Only PDF files are allowed!"));
-    }
-  },
+	storage: pdfStorage,
+	fileFilter: pdfFileFilter,
 });
 
-// Audio upload configuration
+// Middleware to upload PDF to Cloudinary
+export const uploadPdfToCloudinary = async (
+	req: Request,
+	_res: any,
+	next: Function
+) => {
+	try {
+		if (!req.file) return next();
+
+		const result = await uploadToCloudinary(req.file.buffer, {
+			folder: "resumes",
+			resource_type: "raw",
+			public_id: `${Date.now()}-${req.file.originalname}`,
+			type: "upload",
+		});
+
+		(req.file as any).cloudinary = result;
+		(req.file as any).path = result.secure_url;
+
+		next();
+	} catch (error) {
+		next(error);
+	}
+};
+
+// Audio Upload Configuration
+const audioStorage = multer.memoryStorage();
+
+const audioFileFilter = (
+	_req: any,
+	file: Express.Multer.File,
+	cb: Function
+) => {
+	const allowedTypes = [
+		"audio/mpeg",
+		"audio/wav",
+		"audio/ogg",
+		"audio/mp3",
+		"audio/webm",
+	];
+	if (allowedTypes.includes(file.mimetype)) {
+		cb(null, true);
+	} else {
+		cb(new Error("Only audio files are allowed!"), false);
+	}
+};
+
 export const audioUpload = multer({
-  storage,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB limit
-  fileFilter: (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    const allowedTypes = [
-      "audio/mpeg",
-      "audio/wav",
-      "audio/ogg",
-      "audio/mp3",
-      "audio/webm",
-      "audio/mp4",
-    ];
-    
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("Only audio files (MP3, WAV, OGG, WEBM) are allowed!"));
-    }
-  },
+	storage: audioStorage,
+	fileFilter: audioFileFilter,
 });
+
+// Middleware to upload audio to Cloudinary
+export const uploadAudioToCloudinary = async (
+	req: Request,
+	_res: any,
+	next: Function
+) => {
+	try {
+		if (!req.file) return next();
+
+		const result = await uploadToCloudinary(req.file.buffer, {
+			folder: "audio",
+			resource_type: "video", // Cloudinary uses 'video' for audio files
+			public_id: `${Date.now()}-${req.file.originalname}`,
+		});
+
+		(req.file as any).cloudinary = result;
+		(req.file as any).path = result.secure_url;
+
+		next();
+	} catch (error) {
+		next(error);
+	}
+};

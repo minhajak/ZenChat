@@ -7,7 +7,7 @@ export interface MessageType {
   text: string;
   createdAt: string;
   seen: boolean;
-  image: string | ArrayBuffer;
+  image: string | File;
 }
 
 export type UserType = Pick<
@@ -58,10 +58,7 @@ export interface ChatState {
   getUsers: () => Promise<void>;
   getMessages: (userId: string) => Promise<void>;
   setSelectedUser: (selectedUser: userTypeWithLatestMessage | null) => void;
-  sentMessages: (messageData: {
-    text: string;
-    image: ArrayBuffer;
-  }) => Promise<void>;
+  sentMessages: (messageData: FormData) => Promise<void>;
   subscribeToMessages: () => void;
   unsubscribeToMessages: () => void;
   markAsSeen: (id: string) => void;

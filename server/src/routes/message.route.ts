@@ -7,13 +7,14 @@ import {
   markMessagesAsSeen,
   sendMessages,
 } from "../controllers/message.controller";
+import { imageUpload, uploadImageToCloudinary } from "../middlewares/cloudinary.middleware";
 
 const router = express.Router();
 
 router.use(authMiddleware, updateLastSeen);
 router.get("/users", getUsersForSidebar);
 router.get("/:id", getMessages);
-router.post("/send/:id", sendMessages);
+router.post("/send/:id",imageUpload.single("image"),uploadImageToCloudinary, sendMessages);
 router.put("/mark-seen/:id", markMessagesAsSeen);
 
 router.delete("/conversation/:receiverId", deleteConversation);

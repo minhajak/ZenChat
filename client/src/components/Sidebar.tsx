@@ -99,7 +99,7 @@ export default function Sidebar() {
                           <Image className="w-4 h-4" />
                         )}
                         {user?.latestMessage.text ? (
-                          <span className="truncate">
+                          <span className="line-clamp-1">
                             {user.latestMessage.text}
                           </span>
                         ) : (

@@ -94,18 +94,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
- sentMessages: async (messageData) => {
+sentMessages: async (messageData: FormData) => {
   const { selectedUser, messages, users } = get();
   const authUser = useStoreAuth.getState().authUser;
   
   try {
+    // Extract data from FormData for optimistic update
+    const text = messageData.get("text") as string;
+    const imageFile = messageData.get("image") as File | null;
+    console.log(text)
+    
+    // Create preview URL for optimistic image display
+    let imagePreview = null;
+    if (imageFile) {
+      imagePreview = URL.createObjectURL(imageFile);
+    }
+
     // Create optimistic message (temporary message shown immediately)
-    const optimisticMessage:MessageType = {
-      ...messageData,
+    const optimisticMessage: MessageType = {
       _id: `temp-${Date.now()}`, // Temporary ID
       senderId: authUser?.id as string, // Current user is sender
       receiverId: selectedUser?.id as string, // Selected user is receiver
       createdAt: new Date().toISOString(),
+      image: imagePreview as string, // Use preview URL temporarily
+      text: text || "",
       seen: false,
     };
 
@@ -119,6 +131,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     );
 
     const newMessage = res.data.messages;
+
+    // Clean up the preview URL
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+    }
 
     // Replace optimistic message with real message from server
     set({ 
@@ -145,7 +162,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   } catch (error: any) {
     // Remove optimistic message on error
     set({ messages: messages }); // Revert to original messages
-    toast.error("Error sending message");
+    toast.error(error.response?.data?.message || "Error sending message");
+    console.error("Error sending message:", error);
   }
 },
 
