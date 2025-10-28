@@ -10,7 +10,7 @@ const ChatHeader = () => {
   const navigate=useNavigate();
 
   return (
-    <div className="p-2.5 border-b border-base-300">
+    <div className="px-5 py-2.5 md:p-2.5 border-b border-base-300 relative z-30">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={()=>navigate(`/profile/${selectedUser?.id}`)}>
           {/* Avatar */}

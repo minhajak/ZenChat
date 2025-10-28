@@ -38,14 +38,16 @@ export default function ChatContainer() {
   }, [messages]);
   if (isMessagesLoading)
     return (
-      <div className="flex-1 flex flex-col overflow-auto ">
+      <div className="flex-1 flex flex-col">
         <ChatHeader />
-        <MessageSkeleton />
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <MessageSkeleton />
+        </div>
         <MessageInput />
       </div>
     );
   return (
-    <div className="flex-1 flex flex-col overflow-auto">
+    <div className="flex-1 flex flex-col">
       <ChatHeader />
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">

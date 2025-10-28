@@ -2,6 +2,27 @@ import type { NextFunction, Request, Response } from "express";
 import { verifyAccessToken } from "../utils/jwt.utls";
 import { User } from "../models/user.model";
 
+import "express";
+import mongoose from "mongoose"
+
+declare module 'cookie-parser';
+declare module 'streamifier';
+declare module 'multer';
+
+declare global {
+  namespace Express {
+    interface User {
+      role: string;
+      userId: mongoose.Types.ObjectId;
+    }
+
+    interface Request {
+      user?: User;
+    }
+  }
+}
+
+
 export const authMiddleware = async (
   req: Request,
   res: Response,
