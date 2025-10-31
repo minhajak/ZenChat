@@ -92,6 +92,19 @@ npm run dev
 
 5. Open your browser and navigate to `http://localhost:5173`
 
+---
+
+## 🌐 Hosted Links
+
+| Component | Link |
+|------------|------|
+| **Client (Frontend)** | [https://zen-chat-app.netlify.app/friends] |
+| **Server (Backend)** | [https://zenchat-0y88.onrender.com/] |
+
+
+---
+
+
 ## 📁 Project Structure
 ```
 chat-app/
@@ -166,8 +179,3 @@ Project Link: [https://github.com/minhajak/ZenChat]
 - [DaisyUI](https://daisyui.com/) for UI components
 ```
 
-You can also add a shorter version for the GitHub repository description field (the one-liner at the top):
-
-**Short Description:**
-```
-A modern real-time chat application built with MERN stack, TypeScript, Socket.IO, and Tailwind CSS. Features instant messaging, online status tracking, and media sharing.
