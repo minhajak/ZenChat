@@ -14,7 +14,7 @@ export const addFriendRequest = async (
     const loggedUserId = req.user?.userId;
     const { receiverId } = req.params;
 
-    // Validation
+   
     if (!loggedUserId) {
       res.status(401).json({ message: "Unauthorized" });
       return;
