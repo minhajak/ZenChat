@@ -1,8 +1,8 @@
-# Real-Time Chat Application 💬
+# Real-Time Chat Application 
 
 A modern, full-stack real-time chat application built with the MERN stack, featuring instant messaging, online status tracking, and media sharing capabilities.
 
-## ✨ Features
+## Features
 
 - **Real-time Messaging** - Instant message delivery using Socket.IO
 - **Online Status Tracking** - See who's online in real-time
