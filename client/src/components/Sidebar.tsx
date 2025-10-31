@@ -102,7 +102,7 @@ export default function Sidebar() {
                               <Image className="w-4 h-4" />
                             )}
                             {user?.latestMessage.text ? (
-                              <span className="line-clamp-1">
+                              <span className="truncate max-w-[250px]">
                                 {user.latestMessage.text}
                               </span>
                             ) : (
