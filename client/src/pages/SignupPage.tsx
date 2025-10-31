@@ -32,9 +32,7 @@ export default function SignupPage() {
     if (!formData.email.trim()) {
       return toast.error("Email is required");
     }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
     if (!emailRegex.test(formData.email)) {
       return toast.error("Invalid email format");
     }

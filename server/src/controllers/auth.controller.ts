@@ -17,7 +17,6 @@ import mongoose from "mongoose";
 import cloudinary from "../config/cloudinary.config";
 import { Friend } from "../models/friend.model";
 
-
 export const signUp = async (req: Request, res: Response): Promise<void> => {
   try {
     const data: Partial<UserType> = sanitizeInput(req.body);
@@ -169,18 +168,17 @@ export const updateProfile = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { profileImage } = req.body;
     const userId = req.user?.userId;
 
-    if (!profileImage) {
-      res.status(400).json({ message: "Profile pic is required" });
+    const uploadResponse = req.file ? (req.file as any).path : undefined;
+
+    if (!uploadResponse) {
+      res.json(400).json("image not found");
       return;
     }
-
-    const uploadResponse = await cloudinary.uploader.upload(profileImage);
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { profileImage: uploadResponse.secure_url },
+      { profileImage: uploadResponse },
       { new: true }
     );
 
@@ -195,7 +193,7 @@ export const updateProfile = async (
     });
   } catch (error) {
     console.log("error in update profile:", error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "Internal server error", error: error });
   }
 };
 export const searchUsers = async (

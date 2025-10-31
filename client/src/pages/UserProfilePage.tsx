@@ -1,7 +1,14 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useChatStore } from "../store/useChatStore";
-import { ArrowLeft, Mail, Clock, MessageCircle, Trash2, AlertCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Mail,
+  Clock,
+  MessageCircle,
+  Trash2,
+  AlertCircle,
+} from "lucide-react";
 import { formatLastSeen } from "../lib/utils";
 
 const UserProfilePage = () => {
@@ -40,7 +47,7 @@ const UserProfilePage = () => {
     <>
       <div className="flex flex-col bg-base-100 w-full h-full overflow-hidden">
         {/* Header */}
-        <div className="bg-base-200 px-4 py-3 flex items-center justify-between border-b border-base-300 flex-shrink-0">
+        <div className="bg-base-200 px-4 py-3 flex items-center justify-between border-b border-base-300">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
@@ -84,13 +91,15 @@ const UserProfilePage = () => {
           {/* About Section */}
           <div className="mt-6 bg-base-200">
             <div className="px-6 py-3 border-b border-base-300">
-              <h3 className="text-sm font-medium text-base-content/60">About</h3>
+              <h3 className="text-sm font-medium text-base-content/60">
+                About
+              </h3>
             </div>
 
             <div className="px-6 py-4 space-y-4">
               {/* Email */}
               <div className="flex items-start gap-4">
-                <Mail className="w-5 h-5 text-base-content/60 mt-0.5 flex-shrink-0" />
+                <Mail className="w-5 h-5 text-base-content/60 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-base-content/60 mb-1">Email</p>
                   <p className="text-sm break-all">{user.email}</p>
@@ -100,7 +109,7 @@ const UserProfilePage = () => {
               {/* Last Message Time */}
               {user.latestMessage && (
                 <div className="flex items-start gap-4">
-                  <MessageCircle className="w-5 h-5 text-base-content/60 mt-0.5 flex-shrink-0" />
+                  <MessageCircle className="w-5 h-5 text-base-content/60 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-base-content/60 mb-1">
                       Last Message
@@ -122,7 +131,6 @@ const UserProfilePage = () => {
               )}
             </div>
           </div>
-
           {/* Media, Links, Docs Section */}
           <div className="mt-6 bg-base-200">
             <div className="px-6 py-4 border-b border-base-300">
@@ -170,7 +178,8 @@ const UserProfilePage = () => {
             <h3 className="font-bold text-lg">Delete Chat</h3>
           </div>
           <p className="py-4">
-            Are you sure you want to clear all messages from this conversation with {user.fullName}? This action cannot be undone.
+            Are you sure you want to clear all messages from this conversation
+            with {user.fullName}? This action cannot be undone.
           </p>
           <div className="modal-action">
             <button className="btn btn-error" onClick={handleDelete}>

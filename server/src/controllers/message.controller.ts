@@ -154,13 +154,11 @@ export const sendMessages = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { text, image } = req.body;
+    const { text } = req.body;
     const { id: receiverId } = req.params;
     const senderId = req.user?.userId;
     // Get image URL from Cloudinary upload (if file was uploaded)
     const imageUrl = req.file ? (req.file as any).path : undefined;
-    console.log(imageUrl);
-    console.log(text);
     const newMessage = new Message({
       senderId: senderId,
       receiverId: receiverId,

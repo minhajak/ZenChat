@@ -101,7 +101,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       // Extract data from FormData for optimistic update
       const text = messageData.get("text") as string;
       const imageFile = messageData.get("image") as File | null;
-      console.log(text);
+
 
       // Create preview URL for optimistic image display
       let imagePreview = null;

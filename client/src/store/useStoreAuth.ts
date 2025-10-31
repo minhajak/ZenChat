@@ -84,17 +84,18 @@ export const useStoreAuth = create<AuthState>((set, get) => ({
       set({ isLoggingIn: false });
     }
   },
-  updateProfile: async (data) => {
+  updateProfile: async (formData: FormData) => {
     set({ isUpdatingProfile: true });
     try {
       const res = await client.put<updateUserResponseType>(
         "/api/auth/update-profile",
-        data
+        formData
       );
       set({ authUser: res.data.user });
       toast.success("Account updated Successfully");
     } catch (error: any) {
-      toast.error(error.response.data.message);
+      console.log(error);
+      toast.error(error?.response.data.message);
     } finally {
       set({ isUpdatingProfile: false });
     }

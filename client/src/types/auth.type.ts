@@ -4,7 +4,7 @@ export type userType = {
   fullName: string;
   password?: string;
   role: string;
-  profileImage?: string | File | ArrayBuffer | null;
+  profileImage?: string | File | null;
   createdAt?: string;
 };
 export type loginResponseType = {
@@ -45,7 +45,7 @@ export interface AuthState {
   signup: (user: Pick<userType, "email" | "fullName" | "password">) => void;
   logout: () => void;
   login: (formData: Pick<userType, "email" | "password">) => void;
-  updateProfile: (data: Pick<userType, "profileImage">) => void;
+  updateProfile: (data: FormData) => void;
   connectSocket: () => void;
   disconnectSocket: () => void;
 }
