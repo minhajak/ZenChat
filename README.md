@@ -150,6 +150,13 @@ chat-app/
 ## screenshota
 <img width="923" height="406" alt="zen1" src="https://github.com/user-attachments/assets/ddc49950-d0b4-4d29-a700-302f79c14d27" />
 
+## videos
+
+
+https://github.com/user-attachments/assets/d801bbc2-4d08-462d-baa0-c89c09b7f11a
+
+
+
 
 
 ## 📱 Mobile Support
